@@ -1,45 +1,43 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/nlopes/slack"
-	"github.com/nlopes/slack/slackevents"
 	"net/http"
 )
 
 // here I provide app token from test chat
 // please contact @Pavel Maksymov if u want to join channel or use another token
-var api = slack.New("xoxb-463453827013-463161778324-pSVy6SbQBHQmQaKgTheryh01")
+var verificationToken = "xoxb-463453827013-463161778324-pSVy6SbQBHQmQaKgTheryh01"
 
 func main() {
 	// test events functionality
-	http.HandleFunc("/events-endpoint", func(w http.ResponseWriter, r *http.Request) {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(r.Body)
-		body := buf.String()
-		eventsAPIEvent, e := slackevents.ParseEvent(json.RawMessage(body), slackevents.OptionVerifyToken(&slackevents.TokenComparator{VerificationToken: "TOKEN"}))
-		if e != nil {
+	http.HandleFunc("/slash", func(w http.ResponseWriter, r *http.Request) {
+		s, err := slack.SlashCommandParse(r)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Printf("%v", e)
+			return
 		}
 
-		if eventsAPIEvent.Type == slackevents.URLVerification {
-			var r *slackevents.ChallengeResponse
-			err := json.Unmarshal([]byte(body), &r)
+		if !s.ValidateToken(verificationToken) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		switch s.Command {
+		case "/echo":
+			params := &slack.Msg{Text: s.Text}
+			b, err := json.Marshal(params)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
-			w.Header().Set("Content-Type", "text")
-			w.Write([]byte(r.Challenge))
-		}
-		if eventsAPIEvent.Type == slackevents.CallbackEvent {
-			innerEvent := eventsAPIEvent.InnerEvent
-			switch ev := innerEvent.Data.(type) {
-			case *slackevents.AppMentionEvent:
-				api.PostMessage(ev.Channel, slack.MsgOptionText("Yes, hello.", false))
-			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(b)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	})
 	fmt.Println("[INFO] Server listening")
