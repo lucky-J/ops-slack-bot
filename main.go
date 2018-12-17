@@ -1,1 +1,7 @@
-package ops_slack_bot
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello, ops!")
+}
