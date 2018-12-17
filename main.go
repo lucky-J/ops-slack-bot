@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	// test events functionality
+	// test slash functionality
 	http.HandleFunc("/slash", func(w http.ResponseWriter, r *http.Request) {
 		s, err := slack.SlashCommandParse(r)
 		if err != nil {
