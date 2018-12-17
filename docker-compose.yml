@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: docker/app/Dockerfile
+    logging:
+      options:
+        max-size: 10m
+    volumes:
+      - ".:/go/src/ops-slack-bot"
+    ports:
+      - "18080:18080"
